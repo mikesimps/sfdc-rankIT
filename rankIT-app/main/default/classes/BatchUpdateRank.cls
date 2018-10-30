@@ -8,11 +8,20 @@ public class BatchUpdateRank implements Database.Batchable<sObject>, Database.St
     String emailBody;
 
     public BatchUpdateRank(String objectName) {
+        
+        String settingsSoql = 'SELECT Id, Object__c, DeveloperName, Order__c, Source_Field__c,'
+                                + 'Target_Field__c, Filter__c, Record_Limit__c '
+                            + 'FROM RankIt_Settings__mdt '
+                            + 'WHERE Object__c = \'' + objectName + '\'';
 
-        RankIt_Settings__mdt[] settings = [SELECT Id, Object__c, DeveloperName, Order__c, Source_Field__c, 
-                                                Target_Field__c, Filter__c, Record_Limit__c
-                                            FROM RankIt_Settings__mdt
-                                            WHERE Object__c = :objectName AND ActiveInd__c = true LIMIT 1];
+        if(!Test.isRunningTest()) {
+            settingsSoql += ' AND ActiveInd__c = true';
+        } else {
+            settingsSoql += ' AND Include_In_Tests__c = true';
+        }
+
+        system.debug(settingsSoql);
+        RankIt_Settings__mdt[] settings =  database.query(settingsSoql +' LIMIT 1');
         
         if(settings != null) {
             RankIt_Settings__mdt setting = settings[0];
@@ -66,12 +75,13 @@ public class BatchUpdateRank implements Database.Batchable<sObject>, Database.St
             }
         }
 
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        mail.setSenderDisplayName('Salesforce - RankIt');
+        mail.setSubject('Failures in RankIt UpdateRank Job: ' + this.errorCount);
+        mail.setToAddresses(toAddresses);
+        mail.setPlainTextBody(this.emailBody);
+
         if (this.errorCount > 0 && toAddresses.size() > 0) {
-            Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-            mail.setSenderDisplayName('Salesforce - RankIt');
-            mail.setSubject('Failures in RankIt UpdateRank Job: ' + this.errorCount);
-            mail.setToAddresses(toAddresses);
-            mail.setPlainTextBody(this.emailBody);
             Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ mail });
         }
     }
