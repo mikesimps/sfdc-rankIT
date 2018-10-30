@@ -1,0 +1,8 @@
+{
+    "orgName": "RankIT Inc",
+    "edition": "Enterprise",
+    "hasSampleData": true,
+    "orgPreferences" : {
+        "enabled": ["S1DesktopEnabled"]
+    }
+}

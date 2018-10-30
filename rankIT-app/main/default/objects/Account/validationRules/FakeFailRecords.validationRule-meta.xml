@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>FakeFailRecords</fullName>
+    <active>false</active>
+    <errorConditionFormula>Rank__c = 10 || Rank__c = 25</errorConditionFormula>
+    <errorMessage>Failed</errorMessage>
+</ValidationRule>
