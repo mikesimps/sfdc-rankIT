@@ -8,20 +8,8 @@ public class BatchUpdateRank implements Database.Batchable<sObject>, Database.St
     String emailBody;
 
     public BatchUpdateRank(String objectName) {
-        
-        String settingsSoql = 'SELECT Id, Object__c, DeveloperName, Order__c, Source_Field__c,'
-                                + 'Target_Field__c, Filter__c, Record_Limit__c '
-                            + 'FROM RankIt_Settings__mdt '
-                            + 'WHERE Object__c = \'' + objectName + '\'';
 
-        if(!Test.isRunningTest()) {
-            settingsSoql += ' AND ActiveInd__c = true';
-        } else {
-            settingsSoql += ' AND Include_In_Tests__c = true';
-        }
-
-        system.debug(settingsSoql);
-        RankIt_Settings__mdt[] settings =  database.query(settingsSoql +' LIMIT 1');
+        List<RankIt_Settings__mdt> settings =  RankITUtil.getSettings(objectName);
         
         if(settings != null) {
             RankIt_Settings__mdt setting = settings[0];
@@ -33,6 +21,7 @@ public class BatchUpdateRank implements Database.Batchable<sObject>, Database.St
                         
             this.query += ' ORDER BY ' + setting.Source_Field__c + ' ' + setting.Order__c + ' LIMIT ' + setting.Record_Limit__c.intValue();
             this.targetField = setting.Target_Field__c;
+
         } else {
             this.query = 'SELECT ID FROM Account WHERE Id = 1'; //will never be true and will just skip all processing if there are no active ranks
         }
@@ -66,23 +55,8 @@ public class BatchUpdateRank implements Database.Batchable<sObject>, Database.St
 
     public void finish(Database.BatchableContext bc) {
 
-        List<String> toAddresses = new List<String>(); 
-        for(ApexEmailNotification aen: [Select Id, User.Email, Email FROM ApexEmailNotification]) {
-            if(aen.User.Email == null) {
-                toAddresses.add(aen.Email);
-            } else {
-                toAddresses.add(aen.User.Email);
-            }
-        }
-
-        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-        mail.setSenderDisplayName('Salesforce - RankIt');
-        mail.setSubject('Failures in RankIt UpdateRank Job: ' + this.errorCount);
-        mail.setToAddresses(toAddresses);
-        mail.setPlainTextBody(this.emailBody);
-
-        if (this.errorCount > 0 && toAddresses.size() > 0) {
-            Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ mail });
+        if (this.errorCount > 0) {
+            RankITUtil.sendFailureEmail('Failures in RankIT UpdateRank Job: ' + this.errorCount, this.emailBody);
         }
     }
 }
