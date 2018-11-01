@@ -7,7 +7,7 @@ global class BatchScheduleUpdateRank implements Schedulable {
     }
 
     global void execute(SchedulableContext sc) {
-        BatchUpdateRank b = new BatchUpdateRank(this.obj);
+        BatchClearRank b = new BatchClearRank(this.obj);
         database.executebatch(b,200);
     } 
 } 
